@@ -1,7 +1,12 @@
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.llms import Ollama
+from langchain_groq import ChatGroq  # Changed this
 from langchain.chains import RetrievalQA
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 # Load the vector database
 print("Lodaing Database...")
 embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")

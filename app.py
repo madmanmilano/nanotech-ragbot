@@ -1,9 +1,13 @@
 import streamlit as st
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.llms import Ollama
+from langchain_groq import ChatGroq
 from langchain.chains import RetrievalQA
+import os
+from dotenv import load_dotenv
 
+# Load environment variables - ADD THIS LINE
+load_dotenv()
 # Set up page
 st.title("🤖 UCB NanoTech Chatbot")
 st.write("Ask questions about the research documents")
@@ -13,7 +17,12 @@ st.write("Ask questions about the research documents")
 def load_chatbot():
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     vectorstore = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
-    llm = Ollama(model="llama3.2", temperature=0.7)
+    
+    llm = ChatGroq(
+    model="llama-3.3-70b-versatile",
+    api_key=os.getenv("GROQ_API_KEY"),
+    temperature=0.7
+)
     
     qa_chain = RetrievalQA.from_chain_type(
         llm=llm,
