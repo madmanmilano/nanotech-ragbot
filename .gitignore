@@ -1,6 +1,6 @@
 rag-env/
 faiss_index/
-data/*.pdf
+data/
 __pycache__/
 *.pyc
 .DS_Store
