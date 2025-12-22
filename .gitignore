@@ -1,7 +1,3 @@
-rag-env/
-faiss_index/
-data/
-__pycache__/
 *.pyc
 .DS_Store
 .env
