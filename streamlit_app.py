@@ -3,26 +3,36 @@ from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
 from langchain.chains import RetrievalQA
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 import os
 from dotenv import load_dotenv
 
-# Load environment variables - ADD THIS LINE
 load_dotenv()
-# Set up page
+
 st.title("🤖 UCB NanoTech Chatbot")
 st.write("Ask questions about the research documents")
 
-# Load resources (cached so it only loads once)
 @st.cache_resource
 def load_chatbot():
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-    vectorstore = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
+    
+    # Build vector database from PDFs
+    documents = []
+    for file in os.listdir("data"):
+        if file.endswith(".pdf"):
+            loader = PyPDFLoader(f"data/{file}")
+            documents.extend(loader.load())
+    
+    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    chunks = splitter.split_documents(documents)
+    vectorstore = FAISS.from_documents(chunks, embeddings)
     
     llm = ChatGroq(
-    model="llama-3.3-70b-versatile",
-    api_key=os.getenv("GROQ_API_KEY"),
-    temperature=0.7
-)
+        model="llama-3.3-70b-versatile",
+        api_key=os.getenv("GROQ_API_KEY"),
+        temperature=0.7
+    )
     
     qa_chain = RetrievalQA.from_chain_type(
         llm=llm,
@@ -33,23 +43,18 @@ def load_chatbot():
 
 qa_chain = load_chatbot()
 
-# Chat interface
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display chat history
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.write(message["content"])
 
-# User input
 if prompt := st.chat_input("Ask a question..."):
-    # Add user message
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.write(prompt)
     
-    # Get bot response
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
             result = qa_chain.invoke({"query": prompt})
