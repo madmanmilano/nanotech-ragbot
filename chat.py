@@ -1,6 +1,6 @@
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_groq import ChatGroq  # Changed this
+from langchain_groq import ChatGroq
 from langchain.chains import RetrievalQA
 import os
 from dotenv import load_dotenv
