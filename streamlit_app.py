@@ -14,7 +14,8 @@ load_dotenv()
 # Page config
 st.set_page_config(
     page_title="UCB NanoTech Research Assistant",
-    page_icon="🔬"
+    page_icon="🔬",
+    layout="wide"
 )
 
 # Berkeley logo at top
@@ -25,11 +26,22 @@ with col1:
 # Set up page
 st.title("🔬 UCB NanoTech Chatbot")
 st.write("Ask questions about the research documents")
+
+# Settings
+with st.expander("⚙️ Settings"):
+    col1, col2 = st.columns(2)
+    with col1:
+        temperature = st.slider("Response Creativity", 0.0, 1.0, 0.7, 0.1, 
+                               help="Lower = more focused, Higher = more creative")
+    with col2:
+        num_sources = st.slider("Number of Sources", 1, 5, 3,
+                               help="How many document chunks to use")
+
 st.divider()
 
 # Load resources (cached so it only loads once)
 @st.cache_resource
-def load_chatbot():
+def load_chatbot(temp, k):
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     
     # Build vector database from PDFs
@@ -54,18 +66,18 @@ def load_chatbot():
     llm = ChatGroq(
         model="llama-3.3-70b-versatile",
         api_key=os.getenv("GROQ_API_KEY"),
-        temperature=0.7
+        temperature=temp
     )
     
     # Create Q&A chain
     qa_chain = RetrievalQA.from_chain_type(
         llm=llm,
         chain_type="stuff",
-        retriever=vectorstore.as_retriever(search_kwargs={"k": 3})
+        retriever=vectorstore.as_retriever(search_kwargs={"k": k})
     )
     return qa_chain
 
-qa_chain = load_chatbot()
+qa_chain = load_chatbot(temperature, num_sources)
 
 # Chat interface
 if "messages" not in st.session_state:
@@ -76,8 +88,35 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.write(message["content"])
 
-# User input
-if prompt := st.chat_input("Ask a question..."):
+# Suggested questions (only show if no messages yet)
+if len(st.session_state.messages) == 0:
+    st.markdown("### 💡 Suggested Questions:")
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("📊 What is the expected value for Neopterin?"):
+            st.session_state.temp_question = "What is the expected value for Neopterin?"
+            st.rerun()
+        if st.button("🔬 How do you measure Superoxide Dismutase?"):
+            st.session_state.temp_question = "How do you measure Superoxide Dismutase?"
+            st.rerun()
+    with col2:
+        if st.button("⚡ What electrodes are used for Norepinephrine?"):
+            st.session_state.temp_question = "What electrodes are used for Norepinephrine?"
+            st.rerun()
+        if st.button("📋 What tests are in the Kidney Panel?"):
+            st.session_state.temp_question = "What tests are in the Kidney Panel?"
+            st.rerun()
+
+# Handle suggested question
+if "temp_question" in st.session_state:
+    prompt = st.session_state.temp_question
+    del st.session_state.temp_question
+else:
+    # User input
+    prompt = st.chat_input("Ask a question...")
+
+# Process user input
+if prompt:
     # Add user message
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
